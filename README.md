@@ -7,9 +7,7 @@ Fleet configuration for Alpine Linux hosts using sops/age encryption.
 ```sh
 # Add repos and keys
 echo "https://elohmeier.github.io/alpine-config/$(uname -m)" >> /etc/apk/repositories
-echo "https://elohmeier.github.io/alpine-packages/$(uname -m)" >> /etc/apk/repositories
-wget -qO /etc/apk/keys/melange.rsa.pub https://elohmeier.github.io/alpine-config/keys/melange.rsa.pub
-wget -qO /etc/apk/keys/packages@elohmeier.rsa.pub https://elohmeier.github.io/alpine-packages/keys/packages@elohmeier.rsa.pub
+wget -qO /etc/apk/keys/config@elohmeier.rsa.pub https://elohmeier.github.io/alpine-config/keys/config@elohmeier.rsa.pub
 
 # Install and enroll
 apk update && apk add alpine-enroll

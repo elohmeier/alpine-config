@@ -93,7 +93,7 @@ jobs:
               "_site/$arch"/*.apk
           done
 
-          cp melange.rsa.pub _site/keys/
+          cp melange.rsa.pub _site/keys/config@elohmeier.rsa.pub
           cp index.html _site/
 
       - uses: actions/upload-pages-artifact@v3
