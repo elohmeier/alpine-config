@@ -84,7 +84,7 @@ jobs:
               melange build "$pkg" \
                 --arch "$arch" \
                 --signing-key melange.rsa \
-                --out-dir "_site/$arch"
+                --out-dir _site
             done
 
             melange index \
