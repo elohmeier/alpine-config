@@ -3,6 +3,7 @@ keys:
   - &enno_tpe14 age1jp8gjnxe0m228c6rfl5jqs07majzm5fadkz2mguvc5fmdxsavahsggv6cc
   - &enno_mb5 age1e6gdd6c0nf5p47jhcq8dvrcyu4vmrzvg2kd75thsgyl7pzqemunq9mfl7e
   - &ci age16gy0mqspn4qyu94ckndx53msnnvgekpl3389ljvtd302x8fmzgpsu6wtnz
+  - &rpi5 age1p9608ujv5su5atsgkpsy6fnjhu3qnyycke3ppp0fg3w44ha9cdvqj4utac
 
 creation_rules:
   - path_regex: secrets/.*\.sops\.yaml$
@@ -11,3 +12,4 @@ creation_rules:
           - *enno_tpe14
           - *enno_mb5
           - *ci
+          - *rpi5
