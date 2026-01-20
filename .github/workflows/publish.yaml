@@ -31,31 +31,23 @@ jobs:
 
       - name: Regenerate .sops.yaml
         run: |
-          cat > .sops.yaml <<'EOF'
-          # Auto-generated from hosts.yaml - do not edit manually
-          keys:
-            - &enno_tpe14 age1jp8gjnxe0m228c6rfl5jqs07majzm5fadkz2mguvc5fmdxsavahsggv6cc
-            - &enno_mb5 age1e6gdd6c0nf5p47jhcq8dvrcyu4vmrzvg2kd75thsgyl7pzqemunq9mfl7e
-          EOF
-
-          # Add host keys as anchors
-          yq -r '.hosts[] | "  - &" + (.hostname | sub("-"; "_")) + " " + .age_pubkey' hosts.yaml >> .sops.yaml
-
-          cat >> .sops.yaml <<'EOF'
-
-          creation_rules:
-            - path_regex: secrets/.*\.sops\.yaml$
-              key_groups:
-                - age:
-                    - *enno_tpe14
-                    - *enno_mb5
-          EOF
-
-          # Add host key references
-          yq -r '.hosts[] | "            - *" + (.hostname | sub("-"; "_"))' hosts.yaml >> .sops.yaml
-
-          # Remove leading whitespace from heredoc (bash artifact)
-          sed -i 's/^          //' .sops.yaml
+          {
+            echo "# Auto-generated from hosts.yaml - do not edit manually"
+            echo "keys:"
+            echo "  - &enno_tpe14 age1jp8gjnxe0m228c6rfl5jqs07majzm5fadkz2mguvc5fmdxsavahsggv6cc"
+            echo "  - &enno_mb5 age1e6gdd6c0nf5p47jhcq8dvrcyu4vmrzvg2kd75thsgyl7pzqemunq9mfl7e"
+            echo "  - &ci age16gy0mqspn4qyu94ckndx53msnnvgekpl3389ljvtd302x8fmzgpsu6wtnz"
+            yq -r '.hosts[] | "  - &" + (.hostname | sub("-"; "_")) + " " + .age_pubkey' hosts.yaml
+            echo ""
+            echo "creation_rules:"
+            echo "  - path_regex: secrets/.*\\.sops\\.yaml\$"
+            echo "    key_groups:"
+            echo "      - age:"
+            echo "          - *enno_tpe14"
+            echo "          - *enno_mb5"
+            echo "          - *ci"
+            yq -r '.hosts[] | "          - *" + (.hostname | sub("-"; "_"))' hosts.yaml
+          } > .sops.yaml
 
       - name: Reencrypt secrets
         if: hashFiles('secrets/*.sops.yaml') != ''
