@@ -70,30 +70,32 @@ jobs:
 
       - name: Setup signing key
         run: |
-          echo "${{ secrets.MELANGE_KEY }}" | base64 -d > melange.rsa
-          chmod 600 melange.rsa
-          openssl rsa -in melange.rsa -pubout -out melange.rsa.pub 2>/dev/null || \
-            openssl pkey -in melange.rsa -pubout -out melange.rsa.pub
+          echo "${{ secrets.MELANGE_KEY }}" > melange.pem
+          openssl rsa -in melange.pem -out config@elohmeier.rsa -traditional 2>/dev/null || cp melange.pem config@elohmeier.rsa
+          chmod 600 config@elohmeier.rsa
+          openssl rsa -in config@elohmeier.rsa -pubout -out config@elohmeier.rsa.pub
+          rm -f melange.pem
 
       - name: Build packages
         run: |
-          mkdir -p _site/x86_64 _site/aarch64 _site/keys
+          mkdir -p _site/keys
 
           for arch in x86_64 aarch64; do
             for pkg in host-config.yaml alpine-enroll.yaml; do
               melange build "$pkg" \
                 --arch "$arch" \
-                --signing-key melange.rsa \
+                --signing-key config@elohmeier.rsa \
                 --out-dir _site
             done
 
             melange index \
-              --signing-key melange.rsa \
+              --signing-key config@elohmeier.rsa \
+              --arch "$arch" \
               -o "_site/$arch/APKINDEX.tar.gz" \
               "_site/$arch"/*.apk
           done
 
-          cp melange.rsa.pub _site/keys/config@elohmeier.rsa.pub
+          cp config@elohmeier.rsa.pub _site/keys/
           cp index.html _site/
 
       - uses: actions/upload-pages-artifact@v3
