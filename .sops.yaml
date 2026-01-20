@@ -7,5 +7,5 @@ creation_rules:
   - path_regex: secrets/.*\.sops\.yaml$
     key_groups:
       - age:
-          - *enno_tpe14
-          - *enno_mb5
+- *enno_tpe14
+- *enno_mb5
