@@ -1,3 +1,6 @@
 # Host registry - devices add themselves via enrollment PR
 # Format: hostname, ssh_pubkey (ed25519), age_pubkey (derived via ssh-to-age)
-hosts: []
+hosts:
+  - hostname: alpine
+    ssh_pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKqMenJkErdH6BeQqtoDJvzwVaYExK4MXCrc12hFZhZs root@alpine
+    age_pubkey: age1p9608ujv5su5atsgkpsy6fnjhu3qnyycke3ppp0fg3w44ha9cdvqj4utac
