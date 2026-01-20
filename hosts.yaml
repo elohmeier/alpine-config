@@ -1,0 +1,3 @@
+# Host registry - devices add themselves via enrollment PR
+# Format: hostname, ssh_pubkey (ed25519), age_pubkey (derived via ssh-to-age)
+hosts: []

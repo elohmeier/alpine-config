@@ -1,0 +1,111 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          # sops
+          curl -LO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+          chmod +x sops-v3.9.4.linux.amd64
+          sudo mv sops-v3.9.4.linux.amd64 /usr/local/bin/sops
+
+      - name: Regenerate .sops.yaml
+        run: |
+          cat > .sops.yaml <<'EOF'
+          # Auto-generated from hosts.yaml - do not edit manually
+          keys:
+            - &enno_tpe14 age1jp8gjnxe0m228c6rfl5jqs07majzm5fadkz2mguvc5fmdxsavahsggv6cc
+            - &enno_mb5 age1e6gdd6c0nf5p47jhcq8dvrcyu4vmrzvg2kd75thsgyl7pzqemunq9mfl7e
+          EOF
+
+          # Add host keys as anchors
+          yq -r '.hosts[] | "  - &" + (.hostname | sub("-"; "_")) + " " + .age_pubkey' hosts.yaml >> .sops.yaml
+
+          cat >> .sops.yaml <<'EOF'
+
+          creation_rules:
+            - path_regex: secrets/.*\.sops\.yaml$
+              key_groups:
+                - age:
+                    - *enno_tpe14
+                    - *enno_mb5
+          EOF
+
+          # Add host key references
+          yq -r '.hosts[] | "            - *" + (.hostname | sub("-"; "_"))' hosts.yaml >> .sops.yaml
+
+          # Remove leading whitespace from heredoc (bash artifact)
+          sed -i 's/^          //' .sops.yaml
+
+      - name: Reencrypt secrets
+        if: hashFiles('secrets/*.sops.yaml') != ''
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        run: |
+          for f in secrets/*.sops.yaml; do
+            [ -f "$f" ] && sops updatekeys -y "$f"
+          done
+
+      - name: Commit sops changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .sops.yaml secrets/
+          git diff --cached --quiet || git commit -m "chore: update sops config"
+          git push || true
+
+      - uses: chainguard-dev/actions/setup-melange@main
+
+      - name: Setup signing key
+        run: |
+          echo "${{ secrets.MELANGE_KEY }}" | base64 -d > melange.rsa
+          chmod 600 melange.rsa
+          openssl rsa -in melange.rsa -pubout -out melange.rsa.pub 2>/dev/null || \
+            openssl pkey -in melange.rsa -pubout -out melange.rsa.pub
+
+      - name: Build packages
+        run: |
+          mkdir -p _site/x86_64 _site/aarch64 _site/keys
+
+          for arch in x86_64 aarch64; do
+            for pkg in host-config.yaml alpine-enroll.yaml; do
+              melange build "$pkg" \
+                --arch "$arch" \
+                --signing-key melange.rsa \
+                --out-dir "_site/$arch"
+            done
+
+            melange index \
+              --signing-key melange.rsa \
+              -o "_site/$arch/APKINDEX.tar.gz" \
+              "_site/$arch"/*.apk
+          done
+
+          cp melange.rsa.pub _site/keys/
+          cp index.html _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - uses: actions/deploy-pages@v4

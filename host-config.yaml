@@ -1,0 +1,53 @@
+package:
+  name: host-config
+  version: "0.1.0"
+  epoch: 0
+  description: "Fleet configuration and encrypted secrets"
+  copyright:
+    - license: MIT
+  target-architecture:
+    - aarch64
+    - x86_64
+  dependencies:
+    runtime:
+      - sops
+  checks:
+    disabled:
+      - usrmerge
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/v3.21/main
+    keyring:
+      - https://alpinelinux.org/keys/alpine-devel@lists.alpinelinux.org-4a6a0840.rsa.pub
+    packages:
+      - busybox
+
+pipeline:
+  - runs: |
+      mkdir -p "${{targets.destdir}}"/etc/alpine-config/secrets
+
+      # Install encrypted secrets
+      for f in secrets/*.sops.yaml; do
+        [ -f "$f" ] && install -Dm644 "$f" \
+          "${{targets.destdir}}/etc/alpine-config/$f"
+      done
+
+      # Install host registry
+      install -Dm644 hosts.yaml \
+        "${{targets.destdir}}"/etc/alpine-config/hosts.yaml
+
+      # Install decrypt helper
+      cat > "${{targets.destdir}}"/etc/alpine-config/decrypt.sh <<'EOF'
+      #!/bin/sh
+      set -eu
+      SOPS_AGE_KEY_FILE=/etc/sops/age/keys.txt sops -d /etc/alpine-config/secrets/fleet.sops.yaml
+      EOF
+      chmod 755 "${{targets.destdir}}"/etc/alpine-config/decrypt.sh
+
+test:
+  pipeline:
+    - runs: |
+        test -f /etc/alpine-config/hosts.yaml
+        test -x /etc/alpine-config/decrypt.sh

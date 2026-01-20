@@ -1,0 +1,54 @@
+name: Validate PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [hosts.yaml]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install ssh-to-age
+        run: go install github.com/Mic92/ssh-to-age/cmd/ssh-to-age@latest
+
+      - name: Validate new hosts
+        run: |
+          # Get hosts added in this PR
+          git diff origin/main...HEAD -- hosts.yaml > /tmp/diff.txt
+
+          # Extract new entries (lines starting with +, excluding header)
+          grep '^+' /tmp/diff.txt | grep -v '^+++' | sed 's/^+//' > /tmp/added.txt || true
+
+          # Parse each new host block
+          yq -r '.hosts[-1] | @json' hosts.yaml > /tmp/last_host.json
+
+          HOSTNAME=$(jq -r '.hostname' /tmp/last_host.json)
+          SSH_PUBKEY=$(jq -r '.ssh_pubkey' /tmp/last_host.json)
+          AGE_CLAIMED=$(jq -r '.age_pubkey' /tmp/last_host.json)
+
+          echo "Validating: $HOSTNAME"
+
+          # Derive age key
+          AGE_DERIVED=$(echo "$SSH_PUBKEY" | ~/go/bin/ssh-to-age)
+
+          if [ "$AGE_CLAIMED" != "$AGE_DERIVED" ]; then
+            echo "::error::Age key mismatch for $HOSTNAME"
+            echo "Claimed: $AGE_CLAIMED"
+            echo "Derived: $AGE_DERIVED"
+            exit 1
+          fi
+
+          echo "Age key validated for $HOSTNAME"
+
+      - name: Check duplicates
+        run: |
+          DUPES=$(yq -r '.hosts[].hostname' hosts.yaml | sort | uniq -d)
+          if [ -n "$DUPES" ]; then
+            echo "::error::Duplicate hostnames: $DUPES"
+            exit 1
+          fi

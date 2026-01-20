@@ -1,0 +1,37 @@
+package:
+  name: alpine-enroll
+  version: "0.1.0"
+  epoch: 0
+  description: "Device enrollment for alpine-config fleet"
+  copyright:
+    - license: MIT
+  target-architecture:
+    - aarch64
+    - x86_64
+  dependencies:
+    runtime:
+      - github-cli
+      - yq-go
+      - ssh-to-age
+  checks:
+    disabled:
+      - usrmerge
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/v3.21/main
+    keyring:
+      - https://alpinelinux.org/keys/alpine-devel@lists.alpinelinux.org-4a6a0840.rsa.pub
+    packages:
+      - busybox
+
+pipeline:
+  - runs: |
+      install -Dm755 scripts/enroll.sh "${{targets.destdir}}"/usr/bin/alpine-enroll
+
+test:
+  pipeline:
+    - runs: |
+        test -x /usr/bin/alpine-enroll
+        alpine-enroll 2>&1 | grep -q "missing:" || true

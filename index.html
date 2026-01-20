@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>alpine-config</title>
+  <style>
+    body { font-family: monospace; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; }
+    code { background: #f4f4f4; padding: 0.2rem 0.4rem; }
+  </style>
+</head>
+<body>
+  <h1>alpine-config</h1>
+  <p>Fleet configuration repository for Alpine Linux hosts.</p>
+
+  <h2>Enrollment</h2>
+  <pre>
+# Add repositories and keys
+echo "https://elohmeier.github.io/alpine-config/$(uname -m)" >> /etc/apk/repositories
+echo "https://elohmeier.github.io/alpine-packages/$(uname -m)" >> /etc/apk/repositories
+wget -qO /etc/apk/keys/melange.rsa.pub https://elohmeier.github.io/alpine-config/keys/melange.rsa.pub
+wget -qO /etc/apk/keys/packages@elohmeier.rsa.pub https://elohmeier.github.io/alpine-packages/keys/packages@elohmeier.rsa.pub
+
+# Install and enroll
+apk update && apk add alpine-enroll
+alpine-enroll
+apk del alpine-enroll  # optional cleanup</pre>
+
+  <h2>After Merge</h2>
+  <pre>
+apk update && apk add host-config
+/etc/alpine-config/decrypt.sh</pre>
+
+  <h2>Packages</h2>
+  <ul>
+    <li><a href="x86_64/">x86_64</a></li>
+    <li><a href="aarch64/">aarch64</a></li>
+  </ul>
+</body>
+</html>
